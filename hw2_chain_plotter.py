@@ -1,6 +1,9 @@
 #!/usr/bin/env python
+import math
 import rospy
+import numpy as np
 import matplotlib.pyplot as plt
+#from cs476.msg import Chain2D
 
 
 def get_chain_msg():
@@ -8,8 +11,9 @@ def get_chain_msg():
 
     This function will wait until a message is received.
     """
-    # TODO: Implement this function
-    raise NotImplementedError
+    rospy.init_node("chain_plotter", anonymous=True)
+    chain = rospy.wait_for_message("chain_config", Chain2D)
+    return chain
 
 
 def plot_chain(config, W, L, D):
@@ -69,8 +73,50 @@ def get_link_positions(config, W, L, D):
         * joint_positions is a list [p_1, ..., p_{m+1}] where p_i is the position [x,y] of the joint between A_i and A_{i-1}
         * link_vertices is a list [V_1, ..., V_m] where V_i is the list of [x,y] positions of vertices of A_i
     """
-    # TODO: Implement this function
-    raise NotImplementedError
+
+    if len(config) == 0:
+        return ([], [])
+
+    joint_positions = [np.array([0, 0, 1])]
+    link_vertices = []
+
+    link_vertices_body = [
+        np.array([-(L - D) / 2, -W / 2, 1]),
+        np.array([D + (L - D) / 2, -W / 2, 1]),
+        np.array([D + (L - D) / 2, W / 2, 1]),
+        np.array([-(L - D) / 2, W / 2, 1]),
+    ]
+    joint_body = np.array([D, 0, 1])
+    trans_mat = np.array(
+        [
+            [1, 0, 0],
+            [0, 1, 0],
+            [0, 0, 1],
+        ]
+    )
+
+    for i in range(len(config)):
+        a = D if i > 0 else 0
+        trans_mat = np.matmul(trans_mat, get_trans_mat(config[i], a))
+        joint = np.matmul(trans_mat, joint_body)
+        vertices = [
+            np.matmul(trans_mat, link_vertex) for link_vertex in link_vertices_body
+        ]
+        joint_positions.append(joint)
+        link_vertices.append(vertices)
+
+    return (joint_positions, link_vertices)
+
+
+def get_trans_mat(theta, a):
+    """Return the homogeneous transformation matrix"""
+    return np.array(
+        [
+            [math.cos(theta), -math.sin(theta), a],
+            [math.sin(theta), math.cos(theta), 0],
+            [0, 0, 1],
+        ]
+    )
 
 
 if __name__ == "__main__":

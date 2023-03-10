@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import sys, argparse
 import rospy
+from cs476.msg import Chain2D
 
 
 def publish(config, W, L, D):
@@ -12,8 +13,17 @@ def publish(config, W, L, D):
     @type L: float, representing the length of each link
     @type D: float, the distance between the two points of attachment on each link
     """
-    # TODO: Implement this function
-    raise NotImplementedError
+    pub = rospy.Publisher("chain_config", Chain2D, queue_size=10)
+    rospy.init_node("chain_configurator", anonymous=True)
+    rate = rospy.Rate(1)  # 1hz
+    chain = Chain2D()
+    chain.config = config
+    chain.W = W
+    chain.L = L
+    chain.D = D
+    while not rospy.is_shutdown():
+        pub.publish(chain)
+        rate.sleep()
 
 
 def parse_args():
