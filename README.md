@@ -1,5 +1,3 @@
-# Course repository for COM S 476/576 - Motion Strategy Algorithms and Applications, Spring 2023
+python hw3.py hw3_world.json --out hw3_out.json
 
-* Computer Lab
-* Homework
-* Project
+This should print out the collisions in the terminal and also generate a separate figure.
