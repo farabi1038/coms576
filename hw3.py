@@ -22,28 +22,14 @@ def check_coll(configX,configY,W,L,D,O):
             # x2 = x1 + L * np.cos(np.deg2rad(i + j))
             # y2 = y1 + L * np.sin(np.deg2rad(i + j))
 
-            # link1_poly = Polygon([linkV[0][0],linkV[0][1],linkV[0][2],linkV[0][3]])
-            # link2_poly = Polygon([linkV[1][0],linkV[1][1],linkV[1][2],linkV[1][3]])
-            # for obstacle in O:
-            #     obstacle_poly = Polygon([obstacle[0],obstacle[1],obstacle[2],obstacle[3]])
-            #     if obstacle_poly.intersects(link1_poly) or obstacle_poly.intersects(link2_poly):
-            #         return True
-            
-            # return False
-
-            rad_config=(np.deg2rad(configX), np.deg2rad(configY))
-            # get each link joint and link vertices ... 
-            joint_positions, link_vertices = get_link_positions(rad_config, W, L, D)
-            # constructing links polygon ...
-            polygon_link_A1= Polygon([link_vertices[0][0], link_vertices[0][1], link_vertices[0][2], link_vertices[0][3]])
-            polygon_link_A2= Polygon([link_vertices[1][0], link_vertices[1][1], link_vertices[1][2], link_vertices[1][3]])
-            for obs in O: 
-            # constructing obstackles polygon 
-                polygon_obs= Polygon([obs[0], obs[1], obs[2], obs[3]]) 
-                # checking if obstackles intersects with any of the links...
-                if polygon_obs.intersects(polygon_link_A1) or polygon_obs.intersects(polygon_link_A2):
+            link1_poly = Polygon([linkV[0][0],linkV[0][1],linkV[0][2],linkV[0][3]])
+            link2_poly = Polygon([linkV[1][0],linkV[1][1],linkV[1][2],linkV[1][3]])
+            for obstacle in O:
+                obstacle_poly = Polygon([obstacle[0],obstacle[1],obstacle[2],obstacle[3]])
+                if obstacle_poly.intersects(link1_poly) or obstacle_poly.intersects(link2_poly):
                     return True
-            return False    
+            
+            return False
 
 
 def compute_Cobs(O, W, L, D):
@@ -147,7 +133,9 @@ def check_collision(point, obstacles):
     return False
 
 def cal(p1,p2):
+    
     if p1[0]==p2[0]:
+  
         list1=[]
         list2= np.arange(p1[1],p2[1],0.1)
         for i in list2:
@@ -161,6 +149,15 @@ def cal(p1,p2):
             list1.append((round(i,1),p1[1]))
         return list1 
     else:
+        # if p1[1]>p2[1]:
+        #     p1[1],p2[1]=p2[1],p1[1]
+        #     p1[0],p2[0]=p2[0],p1[0]
+
+        # if p1[0]>p2[0]:
+        #     p1[1],p2[1]=p2[1],p1[1]
+        #     p1[0],p2[0]=p2[0],p1[0]     
+
+
         list1=[]
         list2= np.arange(p1[0],p2[0],0.1)
         list3= np.arange(p1[1],p2[1],0.1)
@@ -219,8 +216,8 @@ if __name__ == "__main__":
     print("length of fpath", len(search_result["path"]))
     fpath= interpolate_path(search_result["path"])
 
-    print("length of fpath", len(fpath))
-    print("points in fpath", fpath)
+    #print("length of fpath", len(fpath))
+    #print("points in fpath", fpath)
     fpath_col=[]
     for config in fpath:
         if check_coll(config[0],config[1],W,L,D,O):    
@@ -228,8 +225,8 @@ if __name__ == "__main__":
             fpath_col.append(config)      
 
 
-    print("collisionsssss",len(fpath_col))
-    print("length of f_col", len(fpath_col))
+    print("collisions",fpath_col)
+    #print("length of f_col", len(fpath_col))
     with open(args.out, "w") as outfile:
         json.dump(result, outfile)
 
