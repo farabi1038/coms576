@@ -12,7 +12,7 @@ show_animation = True
 
 class Node:
     """
-    A class representing a node in Dijkstra's search algorithm.
+    Node class for dijkstra search
     """
 
     def __init__(self, x, y, cost, parent_index):
@@ -27,93 +27,82 @@ class Node:
 
 
 def prm_planning(start_x, start_y, goal_x, goal_y,
-                 obstacle_x_list, obstacle_y_list, robot_radius):
+                 ox, oy, robot_radius,dt):
     """
-    Run Probabilistic Road Map (PRM) planning algorithm.
-
-    Args:
-        start_x (float): The x-coordinate of the starting position.
-        start_y (float): The y-coordinate of the starting position.
-        goal_x (float): The x-coordinate of the goal position.
-        goal_y (float): The y-coordinate of the goal position.
-        obstacle_x_list (list): A list of x-coordinates of the obstacle positions.
-        obstacle_y_list (list): A list of y-coordinates of the obstacle positions.
-        robot_radius (float): The radius of the robot.
-
-    Returns:
-        tuple: A tuple of two lists: the x-coordinates and y-coordinates of the planned path.
+    Run probabilistic road map planning
+    :param start_x: start x position
+    :param start_y: start y position
+    :param goal_x: goal x position
+    :param goal_y: goal y position
+    :param obstacle_x_list: obstacle x positions
+    :param obstacle_y_list: obstacle y positions
+    :param robot_radius: robot radius
+    :param rng: (Optional) Random generator
+    :return:
     """
-    
-    # Define the time step for the simulation
-    dt = 0.5
-    
-    # Define the obstacles as a list of tuples
-    obstacle_list = [(obstacle_x_list[0], obstacle_y_list[0], 1-dt, 'top'), 
-                     (obstacle_x_list[1], obstacle_y_list[1], 1-dt, 'bottom')]
-    
-    # Sample points between the start and goal positions, avoiding obstacles
-    sample_x, sample_y = sample_points(start_x, start_y, goal_x, goal_y, 1-dt, obstacle_x_list, obstacle_y_list)
-    
-    # Plot the sampled points, if show_animation flag is set to True
+    #obstacle_kd_tree = KDTree(np.vstack((obstacle_x_list, obstacle_y_list)).T)
+    print("ox oy",ox,oy)
+    obstacleL = [(ox[0], oy[0], 1-dt,'top'), (ox[1], oy[1], 1-dt,'bot')]  
+    print("obs list",obstacleL)
+    sample_x, sample_y = sample_points(start_x, start_y, goal_x, goal_y,
+                                       robot_radius,
+                                       ox, oy)
+    #print("sample_x",sample_x,)
+    #print("sample_y",sample_y)
+    if 2 in sample_x:
+        print("X is there")
+    if -0.5 in sample_y:
+        print("Y is there")    
     if show_animation:
         plt.plot(sample_x, sample_y, ".b")
-    
-    # Generate the roadmap connecting the sampled points
-    road_map = generate_road_map(sample_x, sample_y,1-dt, obstacle_list)
-    print("-------------")
-    print(road_map)
-    print("-------------")
-    
-    # Plan the path using Dijkstra's search algorithm
-    rx, ry = dijkstra_planning(start_x, start_y, goal_x, goal_y, road_map, sample_x, sample_y, obstacle_list)
+
+    road_map = generate_road_map(sample_x, sample_y,
+                                 robot_radius,obstacleL)
+    #print("road map",road_map)
+
+    rx, ry = dijkstra_planning(
+        start_x, start_y, goal_x, goal_y, road_map, sample_x, sample_y,obstacleL)
 
     return rx, ry
 
 
 
-
-def is_collision(start_x, start_y, goal_x, goal_y, robot_radius, obstacle_list):
-    """
-    Check if there's any collision between a straight path between start and goal points
-    and obstacles in the environment
-    :param start_x: x-coordinate of start point
-    :param start_y: y-coordinate of start point
-    :param goal_x: x-coordinate of goal point
-    :param goal_y: y-coordinate of goal point
-    :param robot_radius: radius of the robot
-    :param obstacle_list: list of obstacles in the environment
-    :return: boolean value indicating whether there's a collision or not
-    """
-    x = start_x
-    y = start_y
-    dx = goal_x - start_x
-    dy = goal_y - start_y
-    yaw = math.atan2(goal_y - start_y, goal_x - start_x)
+def is_collision(sx, sy, gx, gy, rr, obstacle_L):
+    x = sx
+    y = sy
+    dx = gx - sx
+    dy = gy - sy
+    yaw = math.atan2(gy - sy, gx - sx)
     d = math.hypot(dx, dy)
 
-    D = robot_radius
+    D = rr
     n_step = round(d / D)
+    #print("n_step",n_step)
 
     for i in range(n_step):
-        if check_collision((x,y), obstacle_list, 1, 0.02):
+        if check_collision((x,y),obstacle_L,1,0.02):
+            #print("no collison in is_col")
             x += D * math.cos(yaw)
             y += D * math.sin(yaw)
+        #else:
+        #    print("collision")    
 
-    if not check_collision((goal_x, goal_y), obstacle_list, 1, 0.02):
-        return True
+    # goal point check
+    
+    if not check_collision((gx,gy),obstacle_L,1,0.02):
+        True
+
 
     return False
-
-
-def generate_road_map(sample_x, sample_y, robot_radius, obstacle_list):
+def generate_road_map(sample_x, sample_y, rr, obstacleL):
     """
-    Generates a road map for a given set of sample points and obstacles in the environment
-    :param sample_x: list of x-coordinates of sample points
-    :param sample_y: list of y-coordinates of sample points
-    :param robot_radius: radius of the robot
-    :param obstacle_list: list of obstacles in the environment
-    :return: the generated road map
+    Road map generation
+    sample_x: [m] x positions of sampled points
+    sample_y: [m] y positions of sampled points
+    robot_radius: Robot Radius[m]
+    obstacle_kd_tree: KDTree object of obstacles
     """
+    #obstacleL = [(ox[0], ox[1], 1-rr,'top'), (oy[0], oy[1], 1-rr,'bot')] 
     road_map = []
     n_sample = len(sample_x)
     sample_kd_tree = KDTree(np.vstack((sample_x, sample_y)).T)
@@ -121,120 +110,119 @@ def generate_road_map(sample_x, sample_y, robot_radius, obstacle_list):
     for (i, ix, iy) in zip(range(n_sample), sample_x, sample_y):
 
         dists, indexes = sample_kd_tree.query([ix, iy], k=n_sample)
+        #print("indexes",len(indexes))
         edge_id = []
 
         for ii in range(1, len(indexes)):
             nx = sample_x[indexes[ii]]
             ny = sample_y[indexes[ii]]
+            #print("tuple",is_collision(ix, iy, nx, ny, rr, obstacleL))
 
-            if not is_collision(ix, iy, nx, ny, robot_radius, obstacle_list):
-                edge_id.append(indexes[ii])
+            if not is_collision(ix, iy, nx, ny, rr, obstacleL):
+                #print("no collision")
+                edge_id.append(indexes[ii])   
 
             if len(edge_id) >= N_KNN:
                 break
 
         road_map.append(edge_id)
 
+        #plot_road_map(road_map, sample_x, sample_y)
+
     return road_map
+def plot_circle(x, y, size, color="-b",orin='top'):  # pragma: no cover
+        print("value for circle ",x,y,orin)
+        
+        if orin=='bot':
 
-def plot_circle(x_center, y_center, radius, color="-b", orientation='top'):
-    """
-    Plots a circle with center at (x_center, y_center) and radius 'radius' using Matplotlib.
-    'color' specifies the color of the plot, and 'orientation' specifies whether the circle is plotted from the top or bottom.
-    """
-    if orientation == 'bot':
-        # plot circle from the bottom
-        degrees = list(range(180, 360, 1))
-        degrees.append(0)
-    else:
-        # plot circle from the top
-        degrees = list(range(0, 180, 1))
-        degrees.append(0)
+            deg = list(range(180, 360, 1))
+            deg.append(0)
+        else:
+            deg = list(range(0, 180, 1))
+            deg.append(0)
 
-    # calculate x and y coordinates for the circle
-    x_list = [x_center + radius * math.cos(np.deg2rad(d)) for d in degrees]
-    y_list = [y_center + radius * math.sin(np.deg2rad(d)) for d in degrees]
-
-    # plot the circle
-    plt.plot(x_list, y_list, color)
+        xl = [x + size * math.cos(np.deg2rad(d)) for d in deg]
+        yl = [y + size * math.sin(np.deg2rad(d)) for d in deg]
+        plt.plot(xl, yl, color)
                 
 
-def dijkstra_planning(start_x, start_y, goal_x, goal_y, obstacle_list, road_map, sample_x, sample_y):
+def dijkstra_planning(sx, sy, gx, gy, road_map, sample_x, sample_y,obstacle_list):
     """
-    Plan a path from start position to goal position avoiding obstacles using Dijkstra algorithm.
-    :param start_x: start x position [m]
-    :param start_y: start y position [m]
-    :param goal_x: goal x position [m]
-    :param goal_y: goal y position [m]
-    :param obstacle_list: list of tuples (x, y, size, orientation) representing obstacles [m]
-    :param road_map: a graph where nodes are connected by edges representing possible movements
-    :param sample_x: x positions of nodes in the graph [m]
-    :param sample_y: y positions of nodes in the graph [m]
-    :return: two lists of path coordinates ([x1, x2, ...], [y1, y2, ...]), empty lists if no path was found
+    s_x: start x position [m]
+    s_y: start y position [m]
+    goal_x: goal x position [m]
+    goal_y: goal y position [m]
+    obstacle_x_list: x position list of Obstacles [m]
+    obstacle_y_list: y position list of Obstacles [m]
+    robot_radius: robot radius [m]
+    road_map: ??? [m]
+    sample_x: ??? [m]
+    sample_y: ??? [m]
+    @return: Two lists of path coordinates ([x1, x2, ...], [y1, y2, ...]), empty list when no path was found
     """
 
-    # Create start and goal nodes
-    start_node = Node(start_x, start_y, 0.0, -1)
-    goal_node = Node(goal_x, goal_y, 0.0, -1)
+    start_node = Node(sx, sy, 0.0, -1)
+    goal_node = Node(gx, gy, 0.0, -1)
 
-    # Create open and closed sets
     open_set, closed_set = dict(), dict()
     open_set[len(road_map) - 2] = start_node
 
-    # Find the path using Dijkstra algorithm
     path_found = True
+    for (ox, oy, size,ori) in obstacle_list:
+            print("circle ",ox,oy)
+            plot_circle(ox, oy, size,orin=ori)
+
     while True:
         if not open_set:
             print("Cannot find path")
             path_found = False
             break
 
-        # Select node with lowest cost from the open set
-        current_id = min(open_set, key=lambda o: open_set[o].cost)
-        current_node = open_set[current_id]
+        c_id = min(open_set, key=lambda o: open_set[o].cost)
+        current = open_set[c_id]
 
-        # Show the graph if animation is enabled
+        # show graph
+        
         if show_animation and len(closed_set.keys()) % 2 == 0:
+            # for stopping simulation with the esc key.
             plt.gcf().canvas.mpl_connect(
                 'key_release_event',
                 lambda event: [exit(0) if event.key == 'escape' else None])
-            plt.plot(current_node.x, current_node.y, "xg")
+            plt.plot(current.x, current.y, "xg")
             plt.pause(0.001)
 
-        # Goal found
-        if current_id == (len(road_map) - 1):
-            print("Goal is found!")
-            goal_node.parent_index = current_node.parent_index
-            goal_node.cost = current_node.cost
+        if c_id == (len(road_map) - 1):
+            print("goal is found!")
+            goal_node.parent_index = current.parent_index
+            goal_node.cost = current.cost
             break
 
-        # Remove current node from open set and add it to closed set
-        del open_set[current_id]
-        closed_set[current_id] = current_node
+        # Remove the item from the open set
+        del open_set[c_id]
+        # Add it to the closed set
+        closed_set[c_id] = current
 
-        # Expand search grid based on motion model
-        for i, node_id in enumerate(road_map[current_id]):
-            dx = sample_x[node_id] - current_node.x
-            dy = sample_y[node_id] - current_node.y
+        # expand search grid based on motion model
+        for i in range(len(road_map[c_id])):
+            n_id = road_map[c_id][i]
+            dx = sample_x[n_id] - current.x
+            dy = sample_y[n_id] - current.y
             d = math.hypot(dx, dy)
-            node = Node(sample_x[node_id], sample_y[node_id], current_node.cost + d, current_id)
+            node = Node(sample_x[n_id], sample_y[n_id],
+                        current.cost + d, c_id)
 
-            # Check if node is already in the closed set
-            if node_id in closed_set:
+            if n_id in closed_set:
                 continue
-
-            # Check if node is already in the open set and update its cost if necessary
-            if node_id in open_set:
-                if open_set[node_id].cost > node.cost:
-                    open_set[node_id].cost = node.cost
-                    open_set[node_id].parent_index = current_id
+            # Otherwise if it is already in the open set
+            if n_id in open_set:
+                if open_set[n_id].cost > node.cost:
+                    open_set[n_id].cost = node.cost
+                    open_set[n_id].parent_index = c_id
             else:
-                open_set[node_id] = node
+                open_set[n_id] = node
 
     if path_found is False:
         return [], []
-
-
 
     # generate final course
     rx, ry = [goal_node.x], [goal_node.y]
@@ -248,7 +236,15 @@ def dijkstra_planning(start_x, start_y, goal_x, goal_y, obstacle_list, road_map,
     return rx, ry
 
 
-      
+
+def plot_road_map(road_map, sample_x, sample_y):  # pragma: no cover
+
+    for i, _ in enumerate(road_map):
+        for ii in range(len(road_map[i])):
+            ind = road_map[i][ii]
+
+            plt.plot([sample_x[i], sample_x[ind]],
+                     [sample_y[i], sample_y[ind]], "-k")
 
 
         
@@ -305,7 +301,6 @@ def main(rng=None):
     gy = -0.5  # [m]
     robot_rad = 0.01  # [m]
     dt=0.02
-
     ox = []
     oy = []
 
@@ -319,13 +314,14 @@ def main(rng=None):
         plt.grid(True)
         plt.axis("equal")
 
-    rx, ry = prm_planning(sx, sy, gx, gy, [0,-0], [-1,1], robot_rad)
+    rx, ry = prm_planning(sx, sy, gx, gy, [0,-0], [-1,1], robot_rad,dt)
 
     assert rx, 'Cannot found path'
 
     if show_animation:
         plt.plot(rx, ry, "-r")
         plt.pause(0.001)
+        plt.show()
 
 
 if __name__ == '__main__':
