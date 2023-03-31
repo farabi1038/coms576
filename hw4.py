@@ -25,11 +25,16 @@ import json, sys, os, argparse
 
 import matplotlib.pyplot as plt
 import numpy as np
+from queue import PriorityQueue
+
+from scipy.spatial import KDTree
+show_animation = True
 
 from scipy.spatial import KDTree
 
-show_animation = True
-
+N_SAMPLE = 100  # number of sample_points
+N_KNN = 15  # number of edge from one sampled point
+MAX_EDGE_LEN = 30.0  # [m] Maximum edge length
 
 class RRT:
     """
@@ -172,7 +177,43 @@ class RRT:
                 self.draw_graph(rnd_node)
 
         return None  # cannot find path
+    
 
+
+
+    def planning3(self,k,N,animation=True):
+        """
+        rrt path planning
+        animation: flag for animation on or off
+        """
+        random_node_gen=0
+
+        self.node_list = [self.start]
+
+        V = []
+        while len(V) < N:
+            rnd_node=self.get_random_node()
+            if np.linalg.norm(np.array([rnd_node.x,rnd_node.y]) - np.array([obstacleList[0][0],obstacleList[0][1]])) > obstacleList[0][2] and np.linalg.norm(np.array([rnd_node.x,rnd_node.y] - np.array([obstacleList[1][0],obstacleList[1][1]]))) > obstacleList[1][2]:
+                V.append(np.array([rnd_node.x,rnd_node.y]))
+        E=self.get_nearest_neighbours(V,k)
+        path=self.search(V,E,(self.start.x,self.start.y),(self.end.x,self.end.y))
+        print("the path",path)
+        rnd_node.x
+
+
+
+
+        
+
+        if animation and i % 5:
+                self.draw_graph(rnd_node)
+
+        return None  # cannot find path
+    
+    
+    
+
+    
     def steer(self, from_node, to_node, extend_length=float("inf")):
 
         new_node = self.Node(from_node.x, from_node.y)
@@ -202,6 +243,9 @@ class RRT:
         new_node.parent = from_node
 
         return new_node
+    
+
+    
 
     def generate_final_course(self, goal_ind):
         path = [[self.end.x, self.end.y]]
@@ -233,10 +277,7 @@ class RRT:
         plt.gcf().canvas.mpl_connect(
             'key_release_event',
             lambda event: [exit(0) if event.key == 'escape' else None])
-        if rnd is not None:
-            plt.plot(rnd.x, rnd.y, '-o')
-            if self.robot_radius > 0.0:
-                self.plot_circle(rnd.x, rnd.y, self.robot_radius, '-r')
+        
         for node in self.node_list:
             if node.parent:
                 plt.plot(node.path_x, node.path_y, "-g")
@@ -244,14 +285,7 @@ class RRT:
         for (ox, oy, size,ori) in self.obstacle_list:
             self.plot_circle(ox, oy, size,orin=ori)
 
-        if self.play_area is not None:
-            plt.plot([self.play_area.xmin, self.play_area.xmax,
-                      self.play_area.xmax, self.play_area.xmin,
-                      self.play_area.xmin],
-                     [self.play_area.ymin, self.play_area.ymin,
-                      self.play_area.ymax, self.play_area.ymax,
-                      self.play_area.ymin],
-                     "-k")
+        
 
         plt.plot(self.start.x, self.start.y, "xr")
         plt.plot(self.end.x, self.end.y, "xr")
@@ -348,7 +382,7 @@ def parse_args():
         choices=['1a', '1b', '2', '3'],
         required=False,
         default='1a',
-        dest="problem",
+        dest="prob",
         help="default prob 1a",
     )
     args = parser.parse_args(sys.argv[1:])
@@ -387,20 +421,20 @@ if __name__ == '__main__':
     #obstacleList =[]
 
 
-    if args.task=='1a':
+    if args.prob=='1a':
         rrt = RRT(start=xI,goal=XG,rand_area=C,obstacle_list=[],play_area=C,robot_radius=RAD)
         path = rrt.planning(animation=show_animation)
     #path = rrt.planning2(animation=show_animation)
     
-    elif args.task=='1b':
+    elif args.prob=='1b':
         rrt = RRT(start=xI,goal=XG,rand_area=C,obstacle_list=obstacleList,play_area=C,robot_radius=0.001)
         path = rrt.planning(animation=show_animation)
-    elif args.task=='2':
+    elif args.prob=='2':
         rrt = RRT(start=xI,goal=XG,rand_area=C,obstacle_list=obstacleList,play_area=C,robot_radius=0.001)
         path = rrt.planning2(animation=show_animation)
-    elif args.task=='3':
-        path, vertices, edges  = PRM(xI, XG, X, O, RADIUS, DT)
-        plot_chain([],path, edges, xI, XG)
+    elif args.prob=='3':
+        rrt = RRT(start=xI,goal=XG,rand_area=C,obstacle_list=obstacleList,play_area=C,robot_radius=0.001)
+        rrt.planning3(15,100,animation=show_animation)
     else : 
         rrt = RRT(start=xI,goal=XG,rand_area=C,obstacle_list=[],play_area=C,robot_radius=0.001)
         path = rrt.planning(animation=show_animation)
