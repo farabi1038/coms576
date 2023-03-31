@@ -382,7 +382,7 @@ if __name__ == '__main__':
 
 
     if args.prob=='1a':
-        rrt = RRT(start=xI,goal=XG,rand_area=C,obstacle_list=[],play_area=C,robot_radius=RAD)
+        rrt = RRT(start=xI,goal=XG,rand_area=C,obstacle_list=[],robot_radius=RAD)
         path = rrt.planning(animation=show_animation)
     #path = rrt.planning2(animation=show_animation)
     
