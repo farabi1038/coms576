@@ -3,7 +3,7 @@ import math
 import rospy
 import numpy as np
 import matplotlib.pyplot as plt
-#from cs476.msg import Chain2D
+from cs476.msg import Chain2D
 
 
 def get_chain_msg():

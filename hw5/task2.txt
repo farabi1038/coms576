@@ -1,0 +1,9 @@
+Here are the few suggestions for the paper :
+
+1. The path is defined as a column matrix which implies that it that path is not continious, rather descrete. This need to be changed to [xI,xG]
+
+2. As it is a continious space, there are chances that the algorithm might to found a solution which need to be defined.
+
+3. Using goal and root in path defination is something unsual.
+
+That is all I can notice.
